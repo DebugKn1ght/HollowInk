@@ -9,6 +9,7 @@ import Catalog from './components/Catalog';
 import { UserRole, BookStatus } from './types';
 import type { BookItem } from './types';
 import { supabase } from './lib/supabase';
+import bcrypt from 'bcryptjs';
 import './index.css';
 
 // Navigation wrapper to handle programmatic navigation
@@ -18,6 +19,7 @@ function AppContent() {
   const [showBookForm, setShowBookForm] = useState(false);
   const [editingBook, setEditingBook] = useState<BookItem | undefined>(undefined);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
   
   const navigate = useNavigate();
 
@@ -201,10 +203,14 @@ function AppContent() {
         if (error) throw error;
         
         if (data && data.length === 0) {
-          // Seed an initial Librarian account if none exists
+          // Seed an initial Librarian account with a secure hashed password
+          const salt = bcrypt.genSaltSync(10);
+          const hashedPassword = bcrypt.hashSync('Admin@123', salt);
+          
           const adminProfile = {
             id: 'admin-id-001',
             username: 'admin',
+            password: hashedPassword, // Store hashed password
             name: 'HollowInk Admin',
             role: UserRole.LIBRARIAN,
             email: 'admin@hollowink.com',
@@ -250,26 +256,75 @@ function AppContent() {
   };
 
   const handleLogin = async (loginData: any) => {
-    let userToSet = loginData;
+    setLoginError(null);
     try {
-      const { data } = await supabase.from('profiles').select('*').eq('username', loginData.username).single();
-      if (data) {
-        userToSet = { ...loginData, id: data.id, name: data.name || loginData.name, email: data.email || loginData.email, avatarUrl: data.avatar_url || loginData.avatarUrl, role: data.role || loginData.role };
-      } else if (loginData.username === 'admin') {
-        userToSet.id = 'admin';
-        userToSet.role = UserRole.LIBRARIAN;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('username', loginData.username)
+        .single();
+      
+      if (error || !data) {
+        setLoginError('Invalid username or password.');
+        return;
       }
-    } catch (err) { console.error(err); }
 
-    setCurrentUser(userToSet);
-    localStorage.setItem('hollowink_user', JSON.stringify(userToSet));
-    
+      // Compare hashed password
+      const isPasswordCorrect = bcrypt.compareSync(loginData.password, data.password || '');
+      
+      if (!isPasswordCorrect) {
+        setLoginError('Invalid username or password.');
+        return;
+      }
+
+      const userToSet = {
+        id: data.id,
+        username: data.username,
+        name: data.name,
+        email: data.email,
+        avatarUrl: data.avatar_url,
+        role: data.role
+      };
+
+      setCurrentUser(userToSet);
+      localStorage.setItem('hollowink_user', JSON.stringify(userToSet));
+      
+      navigate('/dashboard');
+      showToast(`Welcome back, ${userToSet.name}!`);
+    } catch (err) {
+      console.error('Login error:', err);
+      setLoginError('An unexpected error occurred. Please try again.');
+    }
+  };
+
+  const handleSignup = async (user: any): Promise<boolean> => {
     try {
-      await supabase.from('profiles').upsert({ id: userToSet.id, username: userToSet.username, name: userToSet.name, role: userToSet.role, email: userToSet.email, avatar_url: userToSet.avatarUrl });
-    } catch (err) { console.error(err); }
-
-    navigate('/dashboard');
-    showToast(`Welcome back, ${userToSet.name}!`);
+      const { error } = await supabase.from('profiles').insert({
+        id: user.id,
+        username: user.username,
+        password: user.password, // This is already hashed in LoginPage
+        name: user.name,
+        role: user.role,
+        email: user.email,
+        avatar_url: user.avatarUrl
+      });
+      
+      if (error) {
+        if (error.code === '23505') {
+          showToast('Username already exists.', 'error');
+        } else {
+          showToast('Failed to create account.', 'error');
+        }
+        return false;
+      }
+      
+      showToast('Account created successfully! Please login.');
+      return true;
+    } catch (err) {
+      console.error('Signup error:', err);
+      showToast('An unexpected error occurred.', 'error');
+      return false;
+    }
   };
 
   const handleUpdateProfile = async (updatedUser: any) => {
@@ -357,7 +412,7 @@ function AppContent() {
       <main>
         <Routes>
           <Route path="/" element={<LandingPage onStart={() => navigate('/login')} onViewCatalog={() => navigate('/catalog')} />} />
-          <Route path="/login" element={currentUser ? <Navigate to="/dashboard" /> : <LoginPage onLogin={handleLogin} />} />
+          <Route path="/login" element={currentUser ? <Navigate to="/dashboard" /> : <LoginPage onLogin={handleLogin} onSignup={handleSignup} loginError={loginError} />} />
           <Route path="/catalog" element={
             <div className="container" style={{ padding: '2rem 0' }}>
               <header style={{ marginBottom: '2rem' }}>
