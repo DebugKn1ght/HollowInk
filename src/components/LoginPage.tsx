@@ -8,10 +8,12 @@ interface LoginPageProps {
   onLogin: (credentials: Pick<User, 'username' | 'password'>) => void;
   onSignup: (user: User) => Promise<boolean>;
   loginError: string | null;
+  clearLoginError: () => void;
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignup, loginError }) => {
+const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignup, loginError, clearLoginError }) => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -45,34 +47,54 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignup, loginError }) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError(null);
+    setIsLoading(true);
 
-    if (!isLogin && !isPasswordValid) {
-      setLocalError('Please meet all password requirements.');
-      return;
-    }
-
-    if (isLogin) {
-      onLogin({ username, password });
-    } else {
-      const salt = bcrypt.genSaltSync(10);
-      const hashedPassword = bcrypt.hashSync(password, salt);
-      
-      const user: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        username,
-        password: hashedPassword, // Store hashed password
-        name,
-        role: UserRole.MEMBER,
-        status: AccountStatus.ACTIVE,
-        email,
-        avatarUrl: avatarBase64 || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
-      };
-      
-      const success = await onSignup(user);
-      if (success) {
-        setIsLogin(true);
-        setPassword('');
+    try {
+      if (!isLogin && !isPasswordValid) {
+        setLocalError('Please meet all password requirements.');
+        setIsLoading(false);
+        return;
       }
+
+      if (isLogin) {
+        onLogin({ username, password });
+      } else {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        
+        const generateId = () => {
+           if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+             return crypto.randomUUID();
+           }
+           return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+         };
+
+         const user: User = {
+           id: generateId(),
+           username,
+          password: hashedPassword, // Store hashed password
+          name,
+          role: UserRole.MEMBER,
+          status: AccountStatus.ACTIVE,
+          email,
+          avatarUrl: avatarBase64 || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+        };
+        
+        const success = await onSignup(user);
+        if (success) {
+          setIsLogin(true);
+          setPassword('');
+          setUsername('');
+          setName('');
+          setEmail('');
+          setAvatarBase64('');
+        }
+      }
+    } catch (err) {
+      console.error('Submit error:', err);
+      setLocalError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -176,10 +198,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignup, loginError }) 
             type="submit" 
             className="btn btn-primary" 
             style={{ width: '100%', justifyContent: 'center', padding: '12px', marginTop: '1rem' }}
-            disabled={!isLogin && !isPasswordValid}
+            disabled={(!isLogin && !isPasswordValid) || isLoading}
           >
-            {isLogin ? <LogIn size={20} /> : <UserPlus size={20} />}
-            {isLogin ? 'Login' : 'Sign Up'}
+            {isLoading ? (
+              <span className="spinner" style={{ border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', borderRadius: '50%', width: '20px', height: '20px', animation: 'spin 1s linear infinite' }}></span>
+            ) : (
+              <>
+                {isLogin ? <LogIn size={20} /> : <UserPlus size={20} />}
+                {isLogin ? 'Login' : 'Sign Up'}
+              </>
+            )}
           </button>
         </form>
 
@@ -195,6 +223,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignup, loginError }) 
                 setAvatarBase64('');
                 setLocalError(null);
                 setPassword('');
+                clearLoginError();
               }} 
               style={{ background: 'none', border: 'none', color: 'var(--accent)', fontWeight: 600, padding: 0 }}
             >
@@ -203,6 +232,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignup, loginError }) 
           </p>
         </div>
       </div>
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .spinner {
+          display: inline-block;
+          vertical-align: middle;
+        }
+      `}</style>
     </div>
   );
 };

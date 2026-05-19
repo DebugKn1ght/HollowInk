@@ -198,9 +198,14 @@ function AppContent() {
     };
 
     const loadProfiles = async () => {
+      console.log('Loading profiles...');
       try {
         const { data, error } = await supabase.from('profiles').select('*');
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching profiles:', error);
+          throw error;
+        }
+        console.log('Profiles loaded:', data?.length);
         
         if (data && data.length === 0) {
           // Seed an initial Librarian account with a secure hashed password
@@ -213,6 +218,7 @@ function AppContent() {
             password: hashedPassword, // Store hashed password
             name: 'HollowInk Admin',
             role: UserRole.LIBRARIAN,
+            status: 'Active',
             email: 'admin@hollowink.com',
             avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin'
           };
@@ -270,7 +276,7 @@ function AppContent() {
       }
 
       // Compare hashed password
-      const isPasswordCorrect = bcrypt.compareSync(loginData.password, data.password || '');
+      const isPasswordCorrect = await bcrypt.compare(loginData.password, data.password || '');
       
       if (!isPasswordCorrect) {
         setLoginError('Invalid username or password.');
@@ -298,31 +304,41 @@ function AppContent() {
   };
 
   const handleSignup = async (user: any): Promise<boolean> => {
+    setLoginError(null);
+    console.log('Attempting signup for:', user.username, user);
     try {
-      const { error } = await supabase.from('profiles').insert({
+      const profileData = {
         id: user.id,
         username: user.username,
-        password: user.password, // This is already hashed in LoginPage
+        password: user.password,
         name: user.name,
         role: user.role,
         email: user.email,
-        avatar_url: user.avatarUrl
-      });
+        avatar_url: user.avatarUrl,
+        status: user.status || 'Active'
+      };
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert([profileData])
+        .select();
       
       if (error) {
+        console.error('Supabase signup error:', error);
         if (error.code === '23505') {
           showToast('Username already exists.', 'error');
         } else {
-          showToast('Failed to create account.', 'error');
+          showToast(`Failed to create account: ${error.message}`, 'error');
         }
         return false;
       }
       
+      console.log('Signup successful:', data);
       showToast('Account created successfully! Please login.');
       return true;
-    } catch (err) {
-      console.error('Signup error:', err);
-      showToast('An unexpected error occurred.', 'error');
+    } catch (err: any) {
+      console.error('Signup exception:', err);
+      showToast(`An unexpected error occurred: ${err.message || 'Unknown error'}`, 'error');
       return false;
     }
   };
@@ -358,8 +374,9 @@ function AppContent() {
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 10);
 
+    const lendingId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9);
     try {
-      const { error } = await supabase.from('lendings').insert({ id: Math.random().toString(36).substr(2, 9), creationDate: creationDate.toISOString(), dueDate: dueDate.toISOString(), bookItemBarcode: barcode, memberId: currentUser.id });
+      const { error } = await supabase.from('lendings').insert({ id: lendingId, creationDate: creationDate.toISOString(), dueDate: dueDate.toISOString(), bookItemBarcode: barcode, memberId: currentUser.id });
       if (error) throw error;
     } catch (err) {
       console.error(err);
@@ -412,7 +429,7 @@ function AppContent() {
       <main>
         <Routes>
           <Route path="/" element={<LandingPage onStart={() => navigate('/login')} onViewCatalog={() => navigate('/catalog')} />} />
-          <Route path="/login" element={currentUser ? <Navigate to="/dashboard" /> : <LoginPage onLogin={handleLogin} onSignup={handleSignup} loginError={loginError} />} />
+          <Route path="/login" element={currentUser ? <Navigate to="/dashboard" /> : <LoginPage onLogin={handleLogin} onSignup={handleSignup} loginError={loginError} clearLoginError={() => setLoginError(null)} />} />
           <Route path="/catalog" element={
             <div className="container" style={{ padding: '2rem 0' }}>
               <header style={{ marginBottom: '2rem' }}>
