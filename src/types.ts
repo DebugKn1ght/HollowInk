@@ -75,14 +75,18 @@ export interface Account {
   email?: string;
 }
 
-export interface Member extends Account {
+export interface User extends Account {
   name: string;
+  username: string;
+}
+
+export interface Member extends User {
   cardNumber: string;
   totalBooksCheckedOut: number;
 }
 
-export interface Librarian extends Account {
-  // Librarian specific fields if any
+export interface Librarian extends User {
+  employeeId: string;
 }
 
 export interface BookLending {

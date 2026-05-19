@@ -29,13 +29,18 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel }) => {
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target as any;
+    const { name, value } = e.target;
+    const type = 'type' in e.target ? (e.target as HTMLInputElement).type : undefined;
+    
     if (name.includes('.')) {
-      const [parent, child] = name.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: { ...(prev as any)[parent], [child]: value }
-      }));
+      const [parent, child] = name.split('.') as [keyof BookItem, string];
+      const parentValue = formData[parent];
+      if (typeof parentValue === 'object' && parentValue !== null && !Array.isArray(parentValue)) {
+        setFormData(prev => ({
+          ...prev,
+          [parent]: { ...parentValue, [child]: value }
+        }));
+      }
     } else {
       setFormData(prev => ({
         ...prev,

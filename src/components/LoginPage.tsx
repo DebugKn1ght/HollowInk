@@ -1,11 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { LogIn, UserPlus, Upload, Check, AlertCircle } from 'lucide-react';
-import { UserRole } from '../types';
+import { UserRole, AccountStatus } from '../types';
+import type { User } from '../types';
 import bcrypt from 'bcryptjs';
 
 interface LoginPageProps {
-  onLogin: (user: any) => void;
-  onSignup: (user: any) => Promise<boolean>;
+  onLogin: (credentials: Pick<User, 'username' | 'password'>) => void;
+  onSignup: (user: User) => Promise<boolean>;
   loginError: string | null;
 }
 
@@ -18,26 +19,15 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignup, loginError }) 
   const [avatarBase64, setAvatarBase64] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   
-  // Password validation states
-  const [passRequirements, setPassRequirements] = useState({
-    length: false,
-    uppercase: false,
-    number: false,
-    special: false
-  });
-
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!isLogin) {
-      setPassRequirements({
-        length: password.length >= 8,
-        uppercase: /[A-Z]/.test(password),
-        number: /[0-9]/.test(password),
-        special: /[^A-Za-z0-9]/.test(password)
-      });
-    }
-  }, [password, isLogin]);
+  // Derived password validation requirements
+  const passRequirements = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[^A-Za-z0-9]/.test(password)
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -67,12 +57,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignup, loginError }) 
       const salt = bcrypt.genSaltSync(10);
       const hashedPassword = bcrypt.hashSync(password, salt);
       
-      const user = {
+      const user: User = {
         id: Math.random().toString(36).substr(2, 9),
         username,
         password: hashedPassword, // Store hashed password
         name,
         role: UserRole.MEMBER,
+        status: AccountStatus.ACTIVE,
         email,
         avatarUrl: avatarBase64 || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
       };

@@ -1,11 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { UserRole, BookStatus } from '../types';
-import type { BookItem } from '../types';
+import type { BookItem, User } from '../types';
 import { Plus, Edit, Trash2, RefreshCcw, RotateCcw, BookOpen } from 'lucide-react';
 import Catalog from './Catalog';
 
 interface DashboardProps {
-  user: any;
+  user: User;
   books: BookItem[];
   onAddBook: () => void;
   onEditBook: (book: BookItem) => void;
@@ -14,7 +14,7 @@ interface DashboardProps {
   onReturn: (barcode: string) => void;
   onRenew: (barcode: string) => void;
   onReserve: (barcode: string) => void;
-  onUpdateProfile: (updatedUser: any) => void;
+  onUpdateProfile: (updatedUser: User) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 

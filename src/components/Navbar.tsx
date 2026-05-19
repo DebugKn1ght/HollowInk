@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, Library } from 'lucide-react';
+import type { User } from '../types';
 
 interface NavbarProps {
-  currentUser: any;
+  currentUser: User | null;
   onLogout: () => void;
 }
 
