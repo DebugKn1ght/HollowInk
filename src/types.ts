@@ -1,30 +1,34 @@
-export enum BookStatus {
-  AVAILABLE = 'Available',
-  RESERVED = 'Reserved',
-  LOANED = 'Loaned',
-  LOST = 'Lost',
-}
+export const BookStatus = {
+  AVAILABLE: 'Available',
+  RESERVED: 'Reserved',
+  LOANED: 'Loaned',
+  LOST: 'Lost',
+} as const;
+export type BookStatus = typeof BookStatus[keyof typeof BookStatus];
 
-export enum ReservationStatus {
-  WAITING = 'Waiting',
-  PENDING = 'Pending',
-  COMPLETED = 'Completed',
-  CANCELED = 'Canceled',
-  NONE = 'None',
-}
+export const ReservationStatus = {
+  WAITING: 'Waiting',
+  PENDING: 'Pending',
+  COMPLETED: 'Completed',
+  CANCELED: 'Canceled',
+  NONE: 'None',
+} as const;
+export type ReservationStatus = typeof ReservationStatus[keyof typeof ReservationStatus];
 
-export enum AccountStatus {
-  ACTIVE = 'Active',
-  CLOSED = 'Closed',
-  CANCELED = 'Canceled',
-  BLACKLISTED = 'Blacklisted',
-  NONE = 'None',
-}
+export const AccountStatus = {
+  ACTIVE: 'Active',
+  CLOSED: 'Closed',
+  CANCELED: 'Canceled',
+  BLACKLISTED: 'Blacklisted',
+  NONE: 'None',
+} as const;
+export type AccountStatus = typeof AccountStatus[keyof typeof AccountStatus];
 
-export enum UserRole {
-  LIBRARIAN = 'Librarian',
-  MEMBER = 'Member',
-}
+export const UserRole = {
+  LIBRARIAN: 'Librarian',
+  MEMBER: 'Member',
+} as const;
+export type UserRole = typeof UserRole[keyof typeof UserRole];
 
 export interface Author {
   name: string;

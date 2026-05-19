@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { UserRole, BookStatus } from '../types';
-import type { BookItem, BookLending, BookReservation } from '../types';
-import { Plus, Edit, Trash2, List, User, Settings, CheckCircle, RefreshCcw, RotateCcw, Upload, BookOpen } from 'lucide-react';
+import type { BookItem } from '../types';
+import { Plus, Edit, Trash2, RefreshCcw, RotateCcw, BookOpen } from 'lucide-react';
 import Catalog from './Catalog';
 
 interface DashboardProps {

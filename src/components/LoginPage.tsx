@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LogIn, UserPlus, Upload, X, Check, AlertCircle } from 'lucide-react';
+import { LogIn, UserPlus, Upload, Check, AlertCircle } from 'lucide-react';
 import { UserRole } from '../types';
 import bcrypt from 'bcryptjs';
 

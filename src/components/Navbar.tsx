@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Book, User, LogOut, Search, Library } from 'lucide-react';
-import { UserRole } from '../types';
+import { LogOut, Library } from 'lucide-react';
 
 interface NavbarProps {
   currentUser: any;

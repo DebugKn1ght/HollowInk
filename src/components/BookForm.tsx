@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BookStatus } from '../types';
-import type { BookItem, Rack } from '../types';
+import type { BookItem } from '../types';
 import { Save, X, Plus } from 'lucide-react';
 
 interface BookFormProps {
