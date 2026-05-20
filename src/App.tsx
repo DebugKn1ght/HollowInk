@@ -6,7 +6,7 @@ import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
 import BookForm from './components/BookForm';
 import Catalog from './components/Catalog';
-import { UserRole, BookStatus } from './types';
+import { UserRole, BookStatus, AccountStatus } from './types';
 import type { BookItem, User } from './types';
 import { supabase } from './lib/supabase';
 import bcrypt from 'bcryptjs';
@@ -280,11 +280,13 @@ function AppContent() {
 
   const handleLogin = async (loginData: Pick<User, 'username' | 'password'>) => {
     setLoginError(null);
+    const loginPassword = loginData.password || '';
     try {
       // Use Supabase Auth for login
+      const authEmail = loginData.username.includes('@') ? loginData.username : `${loginData.username}@placeholder.com`;
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: loginData.username.includes('@') ? loginData.username : `${loginData.username}@placeholder.com`, // Adjust if usernames aren't emails
-        password: loginData.password,
+        email: authEmail,
+        password: loginPassword,
       });
 
       if (authError) {
@@ -300,19 +302,26 @@ function AppContent() {
           return;
         }
 
-        const isPasswordCorrect = await bcrypt.compare(loginData.password, profileData.password || '');
+        const storedHash = profileData.password;
+        if (!storedHash) {
+          setLoginError('Invalid username or password.');
+          return;
+        }
+
+        const isPasswordCorrect = await bcrypt.compare(loginPassword, storedHash);
         if (!isPasswordCorrect) {
           setLoginError('Invalid username or password.');
           return;
         }
 
-        const userToSet = {
+        const userToSet: User = {
           id: profileData.id,
           username: profileData.username,
           name: profileData.name,
-          email: profileData.email,
+          email: profileData.email || '',
           avatarUrl: profileData.avatar_url,
-          role: profileData.role
+          role: profileData.role,
+          status: profileData.status || AccountStatus.ACTIVE
         };
 
         setCurrentUser(userToSet);
@@ -329,13 +338,14 @@ function AppContent() {
         .eq('id', authData.user.id)
         .single();
 
-      const userToSet = {
+      const userToSet: User = {
         id: authData.user.id,
-        username: profileData?.username || authData.user.email?.split('@')[0],
-        name: profileData?.name || authData.user.email?.split('@')[0],
-        email: authData.user.email,
+        username: profileData?.username || authData.user.email?.split('@')[0] || 'User',
+        name: profileData?.name || authData.user.email?.split('@')[0] || 'User',
+        email: authData.user.email || '',
         avatarUrl: profileData?.avatar_url,
-        role: profileData?.role || UserRole.MEMBER
+        role: profileData?.role || UserRole.MEMBER,
+        status: profileData?.status || AccountStatus.ACTIVE
       };
 
       setCurrentUser(userToSet);
@@ -355,8 +365,8 @@ function AppContent() {
     try {
       // 1. Sign up with Supabase Auth (handles email verification)
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: user.email,
-        password: user.password, // Original password (not hashed yet for Auth)
+        email: user.email || '',
+        password: user.password || '', // Original password (not hashed yet for Auth)
         options: {
           data: {
             name: user.name,
@@ -377,7 +387,7 @@ function AppContent() {
         // 2. Also create a profile in our profiles table
         // We hash the password for our custom table as well for backward compatibility
         const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(user.password, salt);
+        const hashedPassword = await bcrypt.hash(user.password || '', salt);
 
         const profileData = {
           id: authData.user.id, // Use the ID from Auth
