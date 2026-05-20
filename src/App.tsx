@@ -7,14 +7,17 @@ import Dashboard from './components/Dashboard';
 import BookForm from './components/BookForm';
 import Catalog from './components/Catalog';
 import { UserRole, BookStatus } from './types';
-import type { BookItem } from './types';
+import type { BookItem, User } from './types';
 import { supabase } from './lib/supabase';
 import bcrypt from 'bcryptjs';
 import './index.css';
 
 // Navigation wrapper to handle programmatic navigation
 function AppContent() {
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem('hollowink_user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const [books, setBooks] = useState<BookItem[]>([]);
   const [showBookForm, setShowBookForm] = useState(false);
   const [editingBook, setEditingBook] = useState<BookItem | undefined>(undefined);
@@ -24,8 +27,18 @@ function AppContent() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('hollowink_user');
-    if (savedUser) setCurrentUser(JSON.parse(savedUser));
+    // Handle Auth changes (including password recovery)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        // Handle session if needed
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        localStorage.removeItem('hollowink_user');
+      } else if (event === 'PASSWORD_RECOVERY') {
+        // Show a UI to update the password
+        navigate('/login?type=recovery');
+      }
+    });
 
     const loadBooks = async () => {
       try {
@@ -42,7 +55,7 @@ function AppContent() {
         let finalBooks: BookItem[] = [];
 
         if (booksData && booksData.length > 0) {
-          finalBooks = booksData.map((book: any) => {
+          finalBooks = (booksData as BookItem[]).map((book) => {
             const lending = lendingsData?.find(l => l.bookItemBarcode === book.barcode);
             if (lending) {
               return {
@@ -235,7 +248,11 @@ function AppContent() {
 
     loadBooks();
     loadProfiles();
-  }, []);
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   useEffect(() => {
     if (toast) {
@@ -261,35 +278,64 @@ function AppContent() {
     }
   };
 
-  const handleLogin = async (loginData: any) => {
+  const handleLogin = async (loginData: Pick<User, 'username' | 'password'>) => {
     setLoginError(null);
     try {
-      const { data, error } = await supabase
+      // Use Supabase Auth for login
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: loginData.username.includes('@') ? loginData.username : `${loginData.username}@placeholder.com`, // Adjust if usernames aren't emails
+        password: loginData.password,
+      });
+
+      if (authError) {
+        // Fallback for older accounts or if username is used instead of email
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('username', loginData.username)
+          .single();
+        
+        if (profileError || !profileData) {
+          setLoginError('Invalid username or password.');
+          return;
+        }
+
+        const isPasswordCorrect = await bcrypt.compare(loginData.password, profileData.password || '');
+        if (!isPasswordCorrect) {
+          setLoginError('Invalid username or password.');
+          return;
+        }
+
+        const userToSet = {
+          id: profileData.id,
+          username: profileData.username,
+          name: profileData.name,
+          email: profileData.email,
+          avatarUrl: profileData.avatar_url,
+          role: profileData.role
+        };
+
+        setCurrentUser(userToSet);
+        localStorage.setItem('hollowink_user', JSON.stringify(userToSet));
+        navigate('/dashboard');
+        showToast(`Welcome back, ${userToSet.name}!`);
+        return;
+      }
+
+      // If Auth succeeded, get profile
+      const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
-        .eq('username', loginData.username)
+        .eq('id', authData.user.id)
         .single();
-      
-      if (error || !data) {
-        setLoginError('Invalid username or password.');
-        return;
-      }
-
-      // Compare hashed password
-      const isPasswordCorrect = await bcrypt.compare(loginData.password, data.password || '');
-      
-      if (!isPasswordCorrect) {
-        setLoginError('Invalid username or password.');
-        return;
-      }
 
       const userToSet = {
-        id: data.id,
-        username: data.username,
-        name: data.name,
-        email: data.email,
-        avatarUrl: data.avatar_url,
-        role: data.role
+        id: authData.user.id,
+        username: profileData?.username || authData.user.email?.split('@')[0],
+        name: profileData?.name || authData.user.email?.split('@')[0],
+        email: authData.user.email,
+        avatarUrl: profileData?.avatar_url,
+        role: profileData?.role || UserRole.MEMBER
       };
 
       setCurrentUser(userToSet);
@@ -303,47 +349,118 @@ function AppContent() {
     }
   };
 
-  const handleSignup = async (user: any): Promise<boolean> => {
+  const handleSignup = async (user: User): Promise<boolean> => {
     setLoginError(null);
     console.log('Attempting signup for:', user.username, user);
     try {
-      const profileData = {
-        id: user.id,
-        username: user.username,
-        password: user.password,
-        name: user.name,
-        role: user.role,
+      // 1. Sign up with Supabase Auth (handles email verification)
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: user.email,
-        avatar_url: user.avatarUrl,
-        status: user.status || 'Active'
-      };
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .insert([profileData])
-        .select();
-      
-      if (error) {
-        console.error('Supabase signup error:', error);
-        if (error.code === '23505') {
-          showToast('Username already exists.', 'error');
-        } else {
-          showToast(`Failed to create account: ${error.message}`, 'error');
+        password: user.password, // Original password (not hashed yet for Auth)
+        options: {
+          data: {
+            name: user.name,
+            username: user.username,
+            role: user.role,
+            avatar_url: user.avatarUrl
+          }
         }
+      });
+
+      if (authError) {
+        console.error('Supabase Auth signup error:', authError);
+        showToast(`Failed to create account: ${authError.message}`, 'error');
         return false;
       }
+
+      if (authData.user) {
+        // 2. Also create a profile in our profiles table
+        // We hash the password for our custom table as well for backward compatibility
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(user.password, salt);
+
+        const profileData = {
+          id: authData.user.id, // Use the ID from Auth
+          username: user.username,
+          password: hashedPassword,
+          name: user.name,
+          role: user.role,
+          email: user.email,
+          avatar_url: user.avatarUrl,
+          status: 'Active'
+        };
+
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([profileData]);
+        
+        if (profileError) {
+          console.error('Supabase profile creation error:', profileError);
+          // Don't return false here as Auth succeeded, but warn user
+        }
+      }
       
-      console.log('Signup successful:', data);
-      showToast('Account created successfully! Please login.');
+      showToast('Verification email sent! Please check your inbox.');
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
       console.error('Signup exception:', err);
-      showToast(`An unexpected error occurred: ${err.message || 'Unknown error'}`, 'error');
+      showToast(`An unexpected error occurred: ${message}`, 'error');
       return false;
     }
   };
 
-  const handleUpdateProfile = async (updatedUser: any) => {
+  const handleForgotPassword = async (email: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login?type=recovery`,
+      });
+
+      if (error) {
+        console.error('Password reset error:', error);
+        showToast(`Error: ${error.message}`, 'error');
+        return false;
+      }
+
+      showToast('Password reset link sent! Please check your email.');
+      return true;
+    } catch (err: unknown) {
+      console.error('Forgot password exception:', err);
+      showToast('An unexpected error occurred.', 'error');
+      return false;
+    }
+  };
+
+  const handleResetPassword = async (newPassword: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        console.error('Reset password error:', error);
+        showToast(`Error: ${error.message}`, 'error');
+        return false;
+      }
+
+      // Also update the hashed password in our custom profiles table
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        await supabase.from('profiles').update({ password: hashedPassword }).eq('id', user.id);
+      }
+
+      showToast('Password updated successfully! You can now login.');
+      return true;
+    } catch (err: unknown) {
+      console.error('Reset password exception:', err);
+      showToast('An unexpected error occurred.', 'error');
+      return false;
+    }
+  };
+
+  const handleUpdateProfile = async (updatedUser: User) => {
     setCurrentUser(updatedUser);
     localStorage.setItem('hollowink_user', JSON.stringify(updatedUser));
     try {
@@ -429,7 +546,7 @@ function AppContent() {
       <main>
         <Routes>
           <Route path="/" element={<LandingPage onStart={() => navigate('/login')} onViewCatalog={() => navigate('/catalog')} />} />
-          <Route path="/login" element={currentUser ? <Navigate to="/dashboard" /> : <LoginPage onLogin={handleLogin} onSignup={handleSignup} loginError={loginError} clearLoginError={() => setLoginError(null)} />} />
+          <Route path="/login" element={currentUser ? <Navigate to="/dashboard" /> : <LoginPage onLogin={handleLogin} onSignup={handleSignup} onForgotPassword={handleForgotPassword} onResetPassword={handleResetPassword} loginError={loginError} clearLoginError={() => setLoginError(null)} />} />
           <Route path="/catalog" element={
             <div className="container" style={{ padding: '2rem 0' }}>
               <header style={{ marginBottom: '2rem' }}>
