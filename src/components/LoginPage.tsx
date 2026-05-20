@@ -294,12 +294,6 @@ const LoginPage: React.FC<LoginPageProps> = ({
         </form>
 
         <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-          {authMode === 'login' && (
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-              <strong>Tip:</strong> Use <code>admin</code> / <code>Admin@123</code> for Librarian access.
-            </p>
-          )}
-          
           <p>
             {authMode === 'login' ? "Don't have an account? " : authMode === 'signup' ? "Already have an account? " : "Remembered your password? "}
             <button 
