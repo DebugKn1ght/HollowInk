@@ -421,18 +421,26 @@ function AppContent() {
   };
 
   const handleForgotPassword = async (email: string): Promise<boolean> => {
+    console.log('Requesting password reset for:', email);
     try {
+      // Use the current origin, but ensure it's not localhost if we're on production
+      const baseUrl = window.location.origin.includes('localhost') 
+        ? 'https://hollow-ink-94sx.vercel.app' 
+        : window.location.origin;
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/login?type=recovery`,
+        redirectTo: `${baseUrl}/login?type=recovery`,
       });
 
       if (error) {
         console.error('Password reset error:', error);
-        showToast(`Error: ${error.message}`, 'error');
+        // Supabase often returns a generic success even if user doesn't exist for security
+        // but if it does return an error, we show it
+        showToast(`Reset failed: ${error.message}`, 'error');
         return false;
       }
 
-      showToast('Password reset link sent! Please check your email.');
+      showToast('If an account exists for this email, a reset link has been sent!');
       return true;
     } catch (err: unknown) {
       console.error('Forgot password exception:', err);
