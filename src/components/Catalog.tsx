@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BookStatus, UserRole } from '../types';
 import type { BookItem } from '../types';
-import { Search, Filter, BookOpen, Clock, AlertCircle } from 'lucide-react';
+import { Search, Filter, BookOpen, Clock, AlertCircle, ArrowUpDown } from 'lucide-react';
 
 interface CatalogProps {
   books: BookItem[];
@@ -13,19 +13,37 @@ interface CatalogProps {
 const Catalog: React.FC<CatalogProps> = ({ books, userRole, onCheckOut, onReserve }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSubject, setFilterSubject] = useState('All');
+  const [sortBy, setSortBy] = useState('A-Z');
 
   const subjects = ['All', ...new Set(books.map(b => b.subject))];
 
-  const filteredBooks = books.filter(book => {
-    const matchesSearch = 
-      book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      book.authors.some(a => a.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      book.isbn.includes(searchTerm);
-    
-    const matchesSubject = filterSubject === 'All' || book.subject === filterSubject;
-    
-    return matchesSearch && matchesSubject;
-  });
+  const filteredAndSortedBooks = books
+    .filter(book => {
+      const matchesSearch = 
+        book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        book.authors.some(a => a.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        book.isbn.includes(searchTerm);
+      
+      const matchesSubject = filterSubject === 'All' || book.subject === filterSubject;
+      
+      return matchesSearch && matchesSubject;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'A-Z':
+          return a.title.localeCompare(b.title);
+        case 'Z-A':
+          return b.title.localeCompare(a.title);
+        case 'Newest':
+          return new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime();
+        case 'Oldest':
+          return new Date(a.publicationDate).getTime() - new Date(b.publicationDate).getTime();
+        case 'Newly Added':
+          return new Date(b.dateOfPurchase).getTime() - new Date(a.dateOfPurchase).getTime();
+        default:
+          return 0;
+      }
+    });
 
   return (
     <div className="catalog">
@@ -46,10 +64,20 @@ const Catalog: React.FC<CatalogProps> = ({ books, userRole, onCheckOut, onReserv
             {subjects.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
+        <div className="flex" style={{ gap: '0.8rem' }}>
+          <ArrowUpDown size={20} color="var(--text-muted)" />
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            <option value="A-Z">Title (A-Z)</option>
+            <option value="Z-A">Title (Z-A)</option>
+            <option value="Newest">Publication (Newest)</option>
+            <option value="Oldest">Publication (Oldest)</option>
+            <option value="Newly Added">Newly Added</option>
+          </select>
+        </div>
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2.5rem' }}>
-        {filteredBooks.length > 0 ? filteredBooks.map(book => (
+        {filteredAndSortedBooks.length > 0 ? filteredAndSortedBooks.map(book => (
           <div key={book.barcode} className="card book-card flex" style={{ flexDirection: 'column', height: '100%', padding: '0', overflow: 'hidden' }}>
             <div style={{ position: 'relative', width: '100%', paddingTop: '140%', backgroundColor: '#f5f5f5' }}>
               {book.coverImage ? (
