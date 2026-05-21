@@ -33,14 +33,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onViewCatalog }) => 
             <motion.div
               key={currentImageIndex}
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.6 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1.5 }}
               className="hero-image"
               style={{ backgroundImage: `url(${libraryImages[currentImageIndex]})` }}
             />
           </AnimatePresence>
-          <div className="hero-overlay" />
+          <div className="hero-mask" />
         </div>
         <div className="container" style={{ position: 'relative', zIndex: 2 }}>
           <motion.div 
@@ -129,14 +129,18 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onViewCatalog }) => 
           background-size: cover;
           background-position: center;
         }
-        .hero-overlay {
-           position: absolute;
-           top: 0;
-           left: 0;
-           width: 100%;
-           height: 100%;
-           background: linear-gradient(135deg, rgba(245, 247, 250, 0.7) 0%, rgba(195, 207, 226, 0.6) 100%);
-         }
+        .hero-mask {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          mask-image: radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%);
+          -webkit-mask-image: radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%);
+          background: rgba(255, 255, 255, 0.4);
+        }
         .hero h1 {
           font-size: 3.5rem;
           font-weight: 800;
