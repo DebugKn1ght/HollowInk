@@ -33,7 +33,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onViewCatalog }) => 
             <motion.div
               key={currentImageIndex}
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.4 }}
+              animate={{ opacity: 0.6 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1.5 }}
               className="hero-image"
@@ -130,13 +130,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onViewCatalog }) => 
           background-position: center;
         }
         .hero-overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(135deg, rgba(245, 247, 250, 0.9) 0%, rgba(195, 207, 226, 0.8) 100%);
-        }
+           position: absolute;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+           background: linear-gradient(135deg, rgba(245, 247, 250, 0.7) 0%, rgba(195, 207, 226, 0.6) 100%);
+         }
         .hero h1 {
           font-size: 3.5rem;
           font-weight: 800;
