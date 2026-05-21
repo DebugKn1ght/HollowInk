@@ -3,16 +3,28 @@ import { LogIn, UserPlus, Upload, Check, AlertCircle, Eye, EyeOff } from 'lucide
 import { useSearchParams } from 'react-router-dom';
 import { UserRole, AccountStatus } from '../types';
 import type { User } from '../types';
-import bcrypt from 'bcryptjs';
 
 interface LoginPageProps {
-  onLogin: (credentials: Pick<User, 'username' | 'password'>) => void;
+  onLogin: (credentials: Pick<User, 'username' | 'password'>) => Promise<void>;
   onSignup: (user: User) => Promise<boolean>;
   onForgotPassword: (email: string) => Promise<boolean>;
   onResetPassword: (newPassword: string) => Promise<boolean>;
   loginError: string | null;
   clearLoginError: () => void;
 }
+
+const ubDepartments = [
+  'College of Engineering, Technology, Architecture, and Fine Arts (CETAFA)',
+  'College of Arts, Sciences, and Education (CASE)',
+  'College of Business and Accountancy (CBA)',
+  'College of Criminal Justice (CCJ)',
+  'College of Hospitality Management, Tourism, and Nutrition (CHMTN)',
+  'College of Allied Health Sciences (CAHS)',
+  'College of Physical Therapy and Occupational Therapy (CPTOT)',
+  'College of Pharmacy (COP)',
+  'College of Law (COL)',
+  'Graduate School (GS)'
+];
 
 const LoginPage: React.FC<LoginPageProps> = ({ 
   onLogin, onSignup, onForgotPassword, onResetPassword, loginError, clearLoginError 
@@ -34,19 +46,6 @@ const LoginPage: React.FC<LoginPageProps> = ({
   const [schoolId, setSchoolId] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
 
-  const ubDepartments = [
-    'College of Engineering, Technology, Architecture, and Fine Arts (CETAFA)',
-    'College of Arts, Sciences, and Education (CASE)',
-    'College of Business and Accountancy (CBA)',
-    'College of Criminal Justice (CCJ)',
-    'College of Hospitality Management, Tourism, and Nutrition (CHMTN)',
-    'College of Allied Health Sciences (CAHS)',
-    'College of Physical Therapy and Occupational Therapy (CPTOT)',
-    'College of Pharmacy (COP)',
-    'College of Law (COL)',
-    'Graduate School (GS)'
-  ];
-  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Derived password validation requirements
@@ -138,11 +137,8 @@ const LoginPage: React.FC<LoginPageProps> = ({
       }
 
       if (authMode === 'login') {
-        onLogin({ username, password });
+        await onLogin({ username, password });
       } else if (authMode === 'signup') {
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-        
         const generateId = () => {
            if (typeof crypto !== 'undefined' && crypto.randomUUID) {
              return crypto.randomUUID();
@@ -153,7 +149,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
           const user: User = {
             id: generateId(),
             username,
-            password: hashedPassword, // Store hashed password
+            password: password, // Send raw password to onSignup
             name,
             role: UserRole.MEMBER,
             status: AccountStatus.ACTIVE,

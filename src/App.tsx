@@ -457,11 +457,16 @@ function AppContent() {
     setLoginError(null);
     console.log('Attempting signup for:', user.username, user);
     try {
+      const baseUrl = window.location.origin.includes('localhost') 
+        ? 'https://hollow-ink-94sx.vercel.app' 
+        : window.location.origin;
+
       // 1. Sign up with Supabase Auth (handles email verification)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: user.email || '',
         password: user.password || '', // Original password (not hashed yet for Auth)
         options: {
+          emailRedirectTo: `${baseUrl}/login`,
           data: {
             name: user.name,
             username: user.username,
