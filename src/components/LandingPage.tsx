@@ -1,17 +1,48 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, BookOpen, Users, Bell, ArrowRight } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface LandingPageProps {
   onStart: () => void;
   onViewCatalog: () => void;
 }
 
+const libraryImages = [
+  'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&q=80&w=1200',
+  'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&q=80&w=1200',
+  'https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&q=80&w=1200',
+  'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=1200',
+  'https://images.unsplash.com/photo-1440778303588-435521a205bc?auto=format&fit=crop&q=80&w=1200'
+];
+
 const LandingPage: React.FC<LandingPageProps> = ({ onStart, onViewCatalog }) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % libraryImages.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <div className="landing-page">
       <section className="hero">
-        <div className="container">
+        <div className="hero-background">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentImageIndex}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.4 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.5 }}
+              className="hero-image"
+              style={{ backgroundImage: `url(${libraryImages[currentImageIndex]})` }}
+            />
+          </AnimatePresence>
+          <div className="hero-overlay" />
+        </div>
+        <div className="container" style={{ position: 'relative', zIndex: 2 }}>
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -73,9 +104,38 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onViewCatalog }) => 
 
       <style>{`
         .hero {
-          padding: 8rem 0;
-          background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+          position: relative;
+          padding: 10rem 0;
+          overflow: hidden;
           text-align: center;
+          min-height: 80vh;
+          display: flex;
+          align-items: center;
+        }
+        .hero-background {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 1;
+        }
+        .hero-image {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-size: cover;
+          background-position: center;
+        }
+        .hero-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(135deg, rgba(245, 247, 250, 0.9) 0%, rgba(195, 207, 226, 0.8) 100%);
         }
         .hero h1 {
           font-size: 3.5rem;
