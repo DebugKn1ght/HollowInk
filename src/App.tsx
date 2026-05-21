@@ -480,6 +480,8 @@ function AppContent() {
         ? 'https://hollow-ink-94sx.vercel.app' 
         : window.location.origin;
 
+      console.log('Using redirect URL:', `${baseUrl}/login`);
+
       // 1. Sign up with Supabase Auth (handles email verification)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: user.email || '',
@@ -504,42 +506,49 @@ function AppContent() {
         return false;
       }
 
+      console.log('Auth signup successful:', authData);
+
       if (authData.user) {
         // 2. Also create a profile in our profiles table
-        // We hash the password for our custom table as well for backward compatibility
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(user.password || '', salt);
+        try {
+          // We hash the password for our custom table as well for backward compatibility
+          const salt = await bcrypt.genSalt(10);
+          const hashedPassword = await bcrypt.hash(user.password || '', salt);
 
-        const profileData = {
-          id: authData.user.id, // Use the ID from Auth
-          username: user.username,
-          password: hashedPassword,
-          name: user.name,
-          role: user.role,
-          email: user.email,
-          avatar_url: user.avatarUrl,
-          department: user.department,
-          school_id: user.schoolId,
-          status: 'Active'
-        };
+          const profileData = {
+            id: authData.user.id, // Use the ID from Auth
+            username: user.username,
+            password: hashedPassword,
+            name: user.name,
+            role: user.role,
+            email: user.email,
+            avatar_url: user.avatarUrl,
+            department: user.department,
+            school_id: user.schoolId,
+            status: 'Active'
+          };
 
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([profileData]);
-        
-        if (profileError) {
-          console.error('Supabase profile creation error:', profileError);
-          // If RLS is enabled, this might fail because the user isn't confirmed/logged in yet.
-          // We don't return false because Auth succeeded, but we should log it clearly.
-          if (profileError.code === '42501') {
-             console.warn('Profile creation blocked by RLS. Data is saved in Auth metadata and will be synced on first login.');
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([profileData]);
+          
+          if (profileError) {
+            console.error('Supabase profile creation error:', profileError);
+            if (profileError.code === '42501') {
+               console.warn('Profile creation blocked by RLS. Data is saved in Auth metadata.');
+            } else {
+               // We don't return false here as Auth succeeded
+               console.error('Profile creation failed:', profileError.message);
+            }
           } else {
-             showToast(`Auth succeeded but profile creation failed: ${profileError.message}`, 'error');
+            console.log('Profile created successfully');
           }
+        } catch (hashError) {
+          console.error('Error during password hashing or profile creation:', hashError);
+          // Still don't return false as Auth succeeded
         }
       } else if (!authData.session) {
-        // If user already exists but isn't confirmed, Supabase might not return user/session
-        console.log('Signup returned no user/session - user may already exist.');
+        console.log('Signup returned no user/session - user may already exist or confirmation required.');
       }
       
       showToast('Verification email sent! Please check your inbox.');
