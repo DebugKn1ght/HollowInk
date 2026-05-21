@@ -73,6 +73,8 @@ export interface Account {
   role: UserRole;
   avatarUrl?: string; // Profile picture URL
   email?: string;
+  department?: string;
+  schoolId?: string;
 }
 
 export interface User extends Account {

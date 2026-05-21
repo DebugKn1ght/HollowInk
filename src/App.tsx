@@ -52,10 +52,207 @@ function AppContent() {
         
         if (lendingsError) console.error('Error loading lendings:', lendingsError);
 
+        const mockBooks: BookItem[] = [
+          {
+            isbn: '978-0141439518',
+            title: 'Pride and Prejudice',
+            subject: 'Classic Literature',
+            authors: [{ name: 'Jane Austen', description: 'English novelist' }],
+            publisher: 'Penguin Classics',
+            language: 'English',
+            pages: 432,
+            barcode: 'B001',
+            isReferenceOnly: false,
+            price: 12.99,
+            format: 'Hardcover',
+            status: BookStatus.AVAILABLE,
+            dateOfPurchase: new Date(),
+            publicationDate: new Date('1813-01-28'),
+            rack: { number: 'R-101', location: 'Floor 1, Section A' }
+          },
+          {
+            isbn: '978-0143131847',
+            title: 'Frankenstein',
+            subject: 'Gothic Fiction',
+            authors: [{ name: 'Mary Shelley', description: 'English novelist' }],
+            publisher: 'Penguin Classics',
+            language: 'English',
+            pages: 288,
+            barcode: 'B002',
+            isReferenceOnly: false,
+            price: 10.00,
+            format: 'Paperback',
+            status: BookStatus.AVAILABLE,
+            dateOfPurchase: new Date(),
+            publicationDate: new Date('1818-01-01'),
+            rack: { number: 'R-102', location: 'Floor 1, Section B' }
+          },
+          {
+            isbn: '978-0316029186',
+            title: 'The Last Wish (The Witcher)',
+            subject: 'Fantasy',
+            authors: [{ name: 'Andrzej Sapkowski', description: 'Polish fantasy writer' }],
+            publisher: 'Orbit',
+            language: 'English',
+            pages: 352,
+            barcode: 'B003',
+            isReferenceOnly: false,
+            price: 15.99,
+            format: 'Paperback',
+            status: BookStatus.AVAILABLE,
+            dateOfPurchase: new Date(),
+            publicationDate: new Date('1993-01-01'),
+            rack: { number: 'R-201', location: 'Floor 2, Section A' }
+          },
+          {
+            isbn: '978-0544003415',
+            title: 'The Lord of the Rings',
+            subject: 'Fantasy',
+            authors: [{ name: 'J.R.R. Tolkien', description: 'English writer' }],
+            publisher: 'Mariner Books',
+            language: 'English',
+            pages: 1178,
+            barcode: 'B004',
+            isReferenceOnly: false,
+            price: 35.00,
+            format: 'Hardcover',
+            status: BookStatus.AVAILABLE,
+            dateOfPurchase: new Date(),
+            publicationDate: new Date('1954-07-29'),
+            rack: { number: 'R-202', location: 'Floor 2, Section A' }
+          },
+          {
+            isbn: '978-0142437247',
+            title: 'Moby Dick',
+            subject: 'Adventure Fiction',
+            authors: [{ name: 'Herman Melville', description: 'American novelist' }],
+            publisher: 'Penguin Classics',
+            language: 'English',
+            pages: 720,
+            barcode: 'B005',
+            isReferenceOnly: false,
+            price: 12.50,
+            format: 'Paperback',
+            status: BookStatus.AVAILABLE,
+            dateOfPurchase: new Date(),
+            publicationDate: new Date('1851-10-18'),
+            rack: { number: 'R-103', location: 'Floor 1, Section C' }
+          },
+          {
+            isbn: '978-0140449341',
+            title: 'Journey to the West',
+            subject: 'Mythology',
+            authors: [{ name: 'Wu Cheng\'en', description: 'Chinese novelist' }],
+            publisher: 'Penguin Classics',
+            language: 'English',
+            pages: 2400,
+            barcode: 'B006',
+            isReferenceOnly: true,
+            price: 50.00,
+            format: 'Hardcover',
+            status: BookStatus.AVAILABLE,
+            dateOfPurchase: new Date(),
+            publicationDate: new Date('1592-01-01'),
+            rack: { number: 'R-301', location: 'Floor 3, Section A' }
+          },
+          {
+            isbn: '978-1590302255',
+            title: 'The Art of War',
+            subject: 'Military Strategy',
+            authors: [{ name: 'Sun Tzu', description: 'Ancient Chinese strategist' }],
+            publisher: 'Shambhala',
+            language: 'English',
+            pages: 272,
+            barcode: 'B007',
+            isReferenceOnly: false,
+            price: 14.95,
+            format: 'Paperback',
+            status: BookStatus.AVAILABLE,
+            dateOfPurchase: new Date(),
+            publicationDate: new Date('0500-01-01'),
+            rack: { number: 'R-302', location: 'Floor 3, Section B' }
+          },
+          {
+            isbn: '978-0132350884',
+            title: 'Clean Code: A Handbook of Agile Software Craftsmanship',
+            subject: 'Computer Science',
+            authors: [{ name: 'Robert C. Martin', description: 'American software engineer and author' }],
+            publisher: 'Prentice Hall',
+            language: 'English',
+            pages: 464,
+            barcode: 'CS001',
+            isReferenceOnly: false,
+            price: 44.99,
+            format: 'Paperback',
+            status: BookStatus.AVAILABLE,
+            dateOfPurchase: new Date(),
+            publicationDate: new Date('2008-08-11'),
+            rack: { number: 'R-401', location: 'Floor 4, Section CS' }
+          },
+          {
+            isbn: '978-0262033848',
+            title: 'Introduction to Algorithms',
+            subject: 'Computer Science',
+            authors: [
+              { name: 'Thomas H. Cormen', description: 'American computer scientist' },
+              { name: 'Charles E. Leiserson', description: 'American computer scientist' }
+            ],
+            publisher: 'MIT Press',
+            language: 'English',
+            pages: 1312,
+            barcode: 'CS002',
+            isReferenceOnly: true,
+            price: 95.00,
+            format: 'Hardcover',
+            status: BookStatus.AVAILABLE,
+            dateOfPurchase: new Date(),
+            publicationDate: new Date('2009-07-31'),
+            rack: { number: 'R-401', location: 'Floor 4, Section CS' }
+          },
+          {
+            isbn: '978-0131103627',
+            title: 'The C Programming Language',
+            subject: 'Computer Science',
+            authors: [
+              { name: 'Brian W. Kernighan', description: 'Canadian computer scientist' },
+              { name: 'Dennis M. Ritchie', description: 'American computer scientist' }
+            ],
+            publisher: 'Prentice Hall',
+            language: 'English',
+            pages: 272,
+            barcode: 'CS003',
+            isReferenceOnly: false,
+            price: 60.00,
+            format: 'Paperback',
+            status: BookStatus.AVAILABLE,
+            dateOfPurchase: new Date(),
+            publicationDate: new Date('1988-04-01'),
+            rack: { number: 'R-402', location: 'Floor 4, Section CS' }
+          },
+          {
+            isbn: '978-0596007126',
+            title: 'Head First Design Patterns',
+            subject: 'Computer Science',
+            authors: [{ name: 'Eric Freeman', description: 'Computer scientist and author' }],
+            publisher: 'O\'Reilly Media',
+            language: 'English',
+            pages: 694,
+            barcode: 'CS004',
+            isReferenceOnly: false,
+            price: 54.99,
+            format: 'Paperback',
+            status: BookStatus.AVAILABLE,
+            dateOfPurchase: new Date(),
+            publicationDate: new Date('2004-10-25'),
+            rack: { number: 'R-402', location: 'Floor 4, Section CS' }
+          }
+        ];
+
         let finalBooks: BookItem[] = [];
 
         if (booksData && booksData.length > 0) {
-          finalBooks = (booksData as BookItem[]).map((book) => {
+          // Merge existing books from Supabase with any missing mock books
+          const supabaseBooks = (booksData as BookItem[]).map((book) => {
             const lending = lendingsData?.find(l => l.bookItemBarcode === book.barcode);
             if (lending) {
               return {
@@ -74,130 +271,23 @@ function AppContent() {
               dueDate: undefined
             };
           });
+
+          // Filter mock books that aren't in Supabase yet
+          const missingMockBooks = mockBooks.filter(mb => 
+            !supabaseBooks.some(sb => sb.barcode === mb.barcode)
+          );
+
+          if (missingMockBooks.length > 0) {
+            console.log(`Seeding ${missingMockBooks.length} new books to Supabase...`);
+            await supabase.from('books').upsert(missingMockBooks);
+            finalBooks = [...supabaseBooks, ...missingMockBooks];
+          } else {
+            finalBooks = supabaseBooks;
+          }
+
           setBooks(finalBooks);
           localStorage.setItem('hollowink_books', JSON.stringify(finalBooks));
         } else {
-          const mockBooks: BookItem[] = [
-            {
-              isbn: '978-0141439518',
-              title: 'Pride and Prejudice',
-              subject: 'Classic Literature',
-              authors: [{ name: 'Jane Austen', description: 'English novelist' }],
-              publisher: 'Penguin Classics',
-              language: 'English',
-              pages: 432,
-              barcode: 'B001',
-              isReferenceOnly: false,
-              price: 12.99,
-              format: 'Hardcover',
-              status: BookStatus.AVAILABLE,
-              dateOfPurchase: new Date(),
-              publicationDate: new Date('1813-01-28'),
-              rack: { number: 'R-101', location: 'Floor 1, Section A' }
-            },
-            {
-              isbn: '978-0143131847',
-              title: 'Frankenstein',
-              subject: 'Gothic Fiction',
-              authors: [{ name: 'Mary Shelley', description: 'English novelist' }],
-              publisher: 'Penguin Classics',
-              language: 'English',
-              pages: 288,
-              barcode: 'B002',
-              isReferenceOnly: false,
-              price: 10.00,
-              format: 'Paperback',
-              status: BookStatus.AVAILABLE,
-              dateOfPurchase: new Date(),
-              publicationDate: new Date('1818-01-01'),
-              rack: { number: 'R-102', location: 'Floor 1, Section B' }
-            },
-            {
-              isbn: '978-0316029186',
-              title: 'The Last Wish (The Witcher)',
-              subject: 'Fantasy',
-              authors: [{ name: 'Andrzej Sapkowski', description: 'Polish fantasy writer' }],
-              publisher: 'Orbit',
-              language: 'English',
-              pages: 352,
-              barcode: 'B003',
-              isReferenceOnly: false,
-              price: 15.99,
-              format: 'Paperback',
-              status: BookStatus.AVAILABLE,
-              dateOfPurchase: new Date(),
-              publicationDate: new Date('1993-01-01'),
-              rack: { number: 'R-201', location: 'Floor 2, Section A' }
-            },
-            {
-              isbn: '978-0544003415',
-              title: 'The Lord of the Rings',
-              subject: 'Fantasy',
-              authors: [{ name: 'J.R.R. Tolkien', description: 'English writer' }],
-              publisher: 'Mariner Books',
-              language: 'English',
-              pages: 1178,
-              barcode: 'B004',
-              isReferenceOnly: false,
-              price: 35.00,
-              format: 'Hardcover',
-              status: BookStatus.AVAILABLE,
-              dateOfPurchase: new Date(),
-              publicationDate: new Date('1954-07-29'),
-              rack: { number: 'R-202', location: 'Floor 2, Section A' }
-            },
-            {
-              isbn: '978-0142437247',
-              title: 'Moby Dick',
-              subject: 'Adventure Fiction',
-              authors: [{ name: 'Herman Melville', description: 'American novelist' }],
-              publisher: 'Penguin Classics',
-              language: 'English',
-              pages: 720,
-              barcode: 'B005',
-              isReferenceOnly: false,
-              price: 12.50,
-              format: 'Paperback',
-              status: BookStatus.AVAILABLE,
-              dateOfPurchase: new Date(),
-              publicationDate: new Date('1851-10-18'),
-              rack: { number: 'R-103', location: 'Floor 1, Section C' }
-            },
-            {
-              isbn: '978-0140449341',
-              title: 'Journey to the West',
-              subject: 'Mythology',
-              authors: [{ name: 'Wu Cheng\'en', description: 'Chinese novelist' }],
-              publisher: 'Penguin Classics',
-              language: 'English',
-              pages: 2400,
-              barcode: 'B006',
-              isReferenceOnly: true,
-              price: 50.00,
-              format: 'Hardcover',
-              status: BookStatus.AVAILABLE,
-              dateOfPurchase: new Date(),
-              publicationDate: new Date('1592-01-01'),
-              rack: { number: 'R-301', location: 'Floor 3, Section A' }
-            },
-            {
-              isbn: '978-1590302255',
-              title: 'The Art of War',
-              subject: 'Military Strategy',
-              authors: [{ name: 'Sun Tzu', description: 'Ancient Chinese strategist' }],
-              publisher: 'Shambhala',
-              language: 'English',
-              pages: 272,
-              barcode: 'B007',
-              isReferenceOnly: false,
-              price: 14.95,
-              format: 'Paperback',
-              status: BookStatus.AVAILABLE,
-              dateOfPurchase: new Date(),
-              publicationDate: new Date('0500-01-01'),
-              rack: { number: 'R-302', location: 'Floor 3, Section B' }
-            }
-          ];
           setBooks(mockBooks);
           localStorage.setItem('hollowink_books', JSON.stringify(mockBooks));
           // Attempt to seed Supabase with mock data if empty
@@ -321,6 +411,8 @@ function AppContent() {
           email: profileData.email || '',
           avatarUrl: profileData.avatar_url,
           role: profileData.role,
+          department: profileData.department,
+          schoolId: profileData.school_id,
           status: profileData.status || AccountStatus.ACTIVE
         };
 
@@ -345,6 +437,8 @@ function AppContent() {
         email: authData.user.email || '',
         avatarUrl: profileData?.avatar_url,
         role: profileData?.role || UserRole.MEMBER,
+        department: profileData?.department,
+        schoolId: profileData?.school_id,
         status: profileData?.status || AccountStatus.ACTIVE
       };
 
@@ -390,15 +484,17 @@ function AppContent() {
         const hashedPassword = await bcrypt.hash(user.password || '', salt);
 
         const profileData = {
-          id: authData.user.id, // Use the ID from Auth
-          username: user.username,
-          password: hashedPassword,
-          name: user.name,
-          role: user.role,
-          email: user.email,
-          avatar_url: user.avatarUrl,
-          status: 'Active'
-        };
+        id: authData.user.id, // Use the ID from Auth
+        username: user.username,
+        password: hashedPassword,
+        name: user.name,
+        role: user.role,
+        email: user.email,
+        avatar_url: user.avatarUrl,
+        department: user.department,
+        school_id: user.schoolId,
+        status: 'Active'
+      };
 
         const { error: profileError } = await supabase
           .from('profiles')

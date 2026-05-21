@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { LogIn, UserPlus, Upload, Check, AlertCircle } from 'lucide-react';
+import { LogIn, UserPlus, Upload, Check, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { UserRole, AccountStatus } from '../types';
 import type { User } from '../types';
@@ -27,8 +27,25 @@ const LoginPage: React.FC<LoginPageProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [avatarBase64, setAvatarBase64] = useState('');
+  const [department, setDepartment] = useState('');
+  const [schoolId, setSchoolId] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
+
+  const ubDepartments = [
+    'College of Engineering, Technology, Architecture, and Fine Arts (CETAFA)',
+    'College of Arts, Sciences, and Education (CASE)',
+    'College of Business and Accountancy (CBA)',
+    'College of Criminal Justice (CCJ)',
+    'College of Hospitality Management, Tourism, and Nutrition (CHMTN)',
+    'College of Allied Health Sciences (CAHS)',
+    'College of Physical Therapy and Occupational Therapy (CPTOT)',
+    'College of Pharmacy (COP)',
+    'College of Law (COL)',
+    'Graduate School (GS)'
+  ];
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -98,6 +115,16 @@ const LoginPage: React.FC<LoginPageProps> = ({
           setIsLoading(false);
           return;
         }
+        if (!department) {
+          setLocalError('Please select your department.');
+          setIsLoading(false);
+          return;
+        }
+        if (!schoolId) {
+          setLocalError('Please enter your School ID.');
+          setIsLoading(false);
+          return;
+        }
         if (!isPasswordValid) {
           setLocalError('Please meet all password requirements.');
           setIsLoading(false);
@@ -123,16 +150,18 @@ const LoginPage: React.FC<LoginPageProps> = ({
            return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
          };
 
-         const user: User = {
-           id: generateId(),
-           username,
-          password: hashedPassword, // Store hashed password
-          name,
-          role: UserRole.MEMBER,
-          status: AccountStatus.ACTIVE,
-          email,
-          avatarUrl: avatarBase64 || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
-        };
+          const user: User = {
+            id: generateId(),
+            username,
+            password: hashedPassword, // Store hashed password
+            name,
+            role: UserRole.MEMBER,
+            status: AccountStatus.ACTIVE,
+            email,
+            department,
+            schoolId,
+            avatarUrl: avatarBase64 || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+          };
         
         const success = await onSignup(user);
         if (success) {
@@ -142,6 +171,8 @@ const LoginPage: React.FC<LoginPageProps> = ({
           setName('');
           setEmail('');
           setAvatarBase64('');
+          setDepartment('');
+          setSchoolId('');
         }
       }
     } catch (err) {
@@ -213,6 +244,24 @@ const LoginPage: React.FC<LoginPageProps> = ({
                 <label style={{ fontWeight: 600, fontSize: '0.9rem' }}>Full Name</label>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Enter full name" />
               </div>
+              <div className="grid" style={{ gap: '0.4rem' }}>
+                <label style={{ fontWeight: 600, fontSize: '0.9rem' }}>School ID</label>
+                <input type="text" value={schoolId} onChange={(e) => setSchoolId(e.target.value)} required placeholder="Enter School ID" />
+              </div>
+              <div className="grid" style={{ gap: '0.4rem' }}>
+                <label style={{ fontWeight: 600, fontSize: '0.9rem' }}>College Department</label>
+                <select 
+                  value={department} 
+                  onChange={(e) => setDepartment(e.target.value)} 
+                  required 
+                  style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius)', border: '1px solid #ddd' }}
+                >
+                  <option value="">Select Department</option>
+                  {ubDepartments.map((dept) => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
             </>
           )}
 
@@ -244,13 +293,69 @@ const LoginPage: React.FC<LoginPageProps> = ({
                   </button>
                 )}
               </div>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Enter password" />
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  required 
+                  placeholder="Enter password" 
+                  style={{ width: '100%', paddingRight: '40px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    cursor: 'pointer',
+                    padding: '5px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               
               {(authMode === 'signup' || authMode === 'reset') && (
                 <>
                   <div className="grid" style={{ gap: '0.4rem', marginTop: '0.5rem' }}>
                     <label style={{ fontWeight: 600, fontSize: '0.9rem' }}>Confirm {authMode === 'reset' ? 'New Password' : 'Password'}</label>
-                    <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required placeholder="Confirm password" />
+                    <div style={{ position: 'relative' }}>
+                      <input 
+                        type={showConfirmPassword ? "text" : "password"} 
+                        value={confirmPassword} 
+                        onChange={(e) => setConfirmPassword(e.target.value)} 
+                        required 
+                        placeholder="Confirm password" 
+                        style={{ width: '100%', paddingRight: '40px' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: '#64748b',
+                          cursor: 'pointer',
+                          padding: '5px',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
                   <div className="grid" style={{ gap: '0.3rem', marginTop: '0.5rem', backgroundColor: '#f8fafc', padding: '0.8rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                     <p style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.2rem', color: '#64748b' }}>Password Requirements:</p>
