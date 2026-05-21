@@ -430,16 +430,35 @@ function AppContent() {
         .eq('id', authData.user.id)
         .single();
 
+      // Lazy profile creation if missing
+      if (!profileData && authData.user) {
+        console.log('Profile missing for authenticated user, creating from metadata...');
+        const metadata = authData.user.user_metadata;
+        const newProfile = {
+          id: authData.user.id,
+          username: metadata.username || authData.user.email?.split('@')[0] || 'User',
+          name: metadata.name || authData.user.email?.split('@')[0] || 'User',
+          email: authData.user.email,
+          role: metadata.role || UserRole.MEMBER,
+          avatar_url: metadata.avatar_url,
+          department: metadata.department,
+          school_id: metadata.school_id,
+          status: metadata.status || 'Active'
+        };
+        const { error: insertError } = await supabase.from('profiles').insert([newProfile]);
+        if (insertError) console.error('Error in lazy profile creation:', insertError);
+      }
+
       const userToSet: User = {
         id: authData.user.id,
-        username: profileData?.username || authData.user.email?.split('@')[0] || 'User',
-        name: profileData?.name || authData.user.email?.split('@')[0] || 'User',
+        username: profileData?.username || authData.user.user_metadata.username || authData.user.email?.split('@')[0] || 'User',
+        name: profileData?.name || authData.user.user_metadata.name || authData.user.email?.split('@')[0] || 'User',
         email: authData.user.email || '',
-        avatarUrl: profileData?.avatar_url,
-        role: profileData?.role || UserRole.MEMBER,
-        department: profileData?.department,
-        schoolId: profileData?.school_id,
-        status: profileData?.status || AccountStatus.ACTIVE
+        avatarUrl: profileData?.avatar_url || authData.user.user_metadata.avatar_url,
+        role: profileData?.role || authData.user.user_metadata.role || UserRole.MEMBER,
+        department: profileData?.department || authData.user.user_metadata.department,
+        schoolId: profileData?.school_id || authData.user.user_metadata.school_id,
+        status: profileData?.status || authData.user.user_metadata.status || AccountStatus.ACTIVE
       };
 
       setCurrentUser(userToSet);
@@ -471,7 +490,10 @@ function AppContent() {
             name: user.name,
             username: user.username,
             role: user.role,
-            avatar_url: user.avatarUrl
+            avatar_url: user.avatarUrl,
+            department: user.department,
+            school_id: user.schoolId,
+            status: 'Active'
           }
         }
       });
@@ -489,17 +511,17 @@ function AppContent() {
         const hashedPassword = await bcrypt.hash(user.password || '', salt);
 
         const profileData = {
-        id: authData.user.id, // Use the ID from Auth
-        username: user.username,
-        password: hashedPassword,
-        name: user.name,
-        role: user.role,
-        email: user.email,
-        avatar_url: user.avatarUrl,
-        department: user.department,
-        school_id: user.schoolId,
-        status: 'Active'
-      };
+          id: authData.user.id, // Use the ID from Auth
+          username: user.username,
+          password: hashedPassword,
+          name: user.name,
+          role: user.role,
+          email: user.email,
+          avatar_url: user.avatarUrl,
+          department: user.department,
+          school_id: user.schoolId,
+          status: 'Active'
+        };
 
         const { error: profileError } = await supabase
           .from('profiles')
@@ -507,8 +529,17 @@ function AppContent() {
         
         if (profileError) {
           console.error('Supabase profile creation error:', profileError);
-          // Don't return false here as Auth succeeded, but warn user
+          // If RLS is enabled, this might fail because the user isn't confirmed/logged in yet.
+          // We don't return false because Auth succeeded, but we should log it clearly.
+          if (profileError.code === '42501') {
+             console.warn('Profile creation blocked by RLS. Data is saved in Auth metadata and will be synced on first login.');
+          } else {
+             showToast(`Auth succeeded but profile creation failed: ${profileError.message}`, 'error');
+          }
         }
+      } else if (!authData.session) {
+        // If user already exists but isn't confirmed, Supabase might not return user/session
+        console.log('Signup returned no user/session - user may already exist.');
       }
       
       showToast('Verification email sent! Please check your inbox.');
