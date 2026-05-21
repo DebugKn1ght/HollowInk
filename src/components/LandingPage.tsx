@@ -135,11 +135,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onViewCatalog }) => 
           left: 0;
           width: 100%;
           height: 100%;
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-          mask-image: radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%);
-          -webkit-mask-image: radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%);
-          background: rgba(255, 255, 255, 0.4);
+          background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.9) 30%, rgba(255, 255, 255, 0.9) 70%, rgba(255, 255, 255, 0) 100%);
         }
         .hero h1 {
           font-size: 3.5rem;
