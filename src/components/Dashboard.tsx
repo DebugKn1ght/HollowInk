@@ -21,7 +21,34 @@ const Dashboard: React.FC<DashboardProps> = ({
   user, books, onAddBook, onEditBook, onDeleteBook, onCheckOut, onReturn, onRenew, onReserve, onUpdateProfile
 }) => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editData, setEditData] = useState({
+    department: user.department || '',
+    schoolId: user.schoolId || ''
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const ubDepartments = [
+    'College of Engineering, Technology, Architecture, and Fine Arts (CETAFA)',
+    'College of Arts, Sciences, and Education (CASE)',
+    'College of Business and Accountancy (CBA)',
+    'College of Criminal Justice (CCJ)',
+    'College of Hospitality Management, Tourism, and Nutrition (CHMTN)',
+    'College of Allied Health Sciences (CAHS)',
+    'College of Physical Therapy and Occupational Therapy (CPTOT)',
+    'College of Pharmacy (COP)',
+    'College of Law (COL)',
+    'Graduate School (GS)'
+  ];
+
+  const handleProfileUpdate = () => {
+    onUpdateProfile({
+      ...user,
+      department: editData.department,
+      schoolId: editData.schoolId
+    });
+    setIsEditingProfile(false);
+  };
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -69,6 +96,31 @@ const Dashboard: React.FC<DashboardProps> = ({
           <label style={{ fontWeight: 600 }}>Name</label>
           <input type="text" value={user.name} disabled style={{ backgroundColor: '#f5f5f5' }} />
           
+          <label style={{ fontWeight: 600, marginTop: '1rem' }}>School ID</label>
+          <input 
+            type="text" 
+            value={isEditingProfile ? editData.schoolId : user.schoolId || 'Not Set'} 
+            disabled={!isEditingProfile} 
+            onChange={(e) => setEditData({...editData, schoolId: e.target.value})}
+            style={{ backgroundColor: isEditingProfile ? 'white' : '#f5f5f5' }} 
+          />
+
+          <label style={{ fontWeight: 600, marginTop: '1rem' }}>College Department</label>
+          {isEditingProfile ? (
+            <select 
+              value={editData.department} 
+              onChange={(e) => setEditData({...editData, department: e.target.value})}
+              style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius)', border: '1px solid #ddd' }}
+            >
+              <option value="">Select Department</option>
+              {ubDepartments.map((dept) => (
+                <option key={dept} value={dept}>{dept}</option>
+              ))}
+            </select>
+          ) : (
+            <input type="text" value={user.department || 'Not Set'} disabled style={{ backgroundColor: '#f5f5f5' }} />
+          )}
+
           <label style={{ fontWeight: 600, marginTop: '1rem' }}>Username</label>
           <input type="text" value={user.username} disabled style={{ backgroundColor: '#f5f5f5' }} />
           
@@ -78,6 +130,17 @@ const Dashboard: React.FC<DashboardProps> = ({
           <label style={{ fontWeight: 600, marginTop: '1rem' }}>Role</label>
           <div className="badge" style={{ alignSelf: 'flex-start', backgroundColor: 'var(--accent-bg)', color: 'var(--accent)' }}>
             {user.role}
+          </div>
+
+          <div style={{ marginTop: '2rem' }}>
+            {isEditingProfile ? (
+              <div className="flex" style={{ gap: '1rem' }}>
+                <button className="btn btn-primary" onClick={handleProfileUpdate} style={{ flex: 1 }}>Save Changes</button>
+                <button className="btn btn-secondary" onClick={() => setIsEditingProfile(false)} style={{ flex: 1 }}>Cancel</button>
+              </div>
+            ) : (
+              <button className="btn btn-primary" onClick={() => setIsEditingProfile(true)} style={{ width: '100%' }}>Edit Profile Details</button>
+            )}
           </div>
         </div>
       </div>

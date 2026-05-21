@@ -578,7 +578,16 @@ function AppContent() {
     setCurrentUser(updatedUser);
     localStorage.setItem('hollowink_user', JSON.stringify(updatedUser));
     try {
-      const { error } = await supabase.from('profiles').upsert({ id: updatedUser.id, username: updatedUser.username, name: updatedUser.name, role: updatedUser.role, email: updatedUser.email, avatar_url: updatedUser.avatarUrl });
+      const { error } = await supabase.from('profiles').upsert({ 
+        id: updatedUser.id, 
+        username: updatedUser.username, 
+        name: updatedUser.name, 
+        role: updatedUser.role, 
+        email: updatedUser.email, 
+        avatar_url: updatedUser.avatarUrl,
+        department: updatedUser.department,
+        school_id: updatedUser.schoolId
+      });
       if (error) throw error;
       showToast('Profile updated successfully!');
     } catch (err) {
