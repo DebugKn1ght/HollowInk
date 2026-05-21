@@ -1,12 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { UserRole, BookStatus } from '../types';
 import type { BookItem, User } from '../types';
-import { Plus, Edit, Trash2, RefreshCcw, RotateCcw, BookOpen } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCcw, RotateCcw, BookOpen, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 import Catalog from './Catalog';
+import { supabase } from '../lib/supabase';
 
 interface DashboardProps {
   user: User;
   books: BookItem[];
+  profiles?: User[]; // Add profiles to props
   onAddBook: () => void;
   onEditBook: (book: BookItem) => void;
   onDeleteBook: (barcode: string) => void;
@@ -21,6 +23,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   user, books, onAddBook, onEditBook, onDeleteBook, onCheckOut, onReturn, onRenew, onReserve, onUpdateProfile
 }) => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [loanTab, setLoanTab] = useState<'active' | 'backlog'>('active');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editData, setEditData] = useState({
     department: user.department || '',
@@ -49,6 +52,32 @@ const Dashboard: React.FC<DashboardProps> = ({
     });
     setIsEditingProfile(false);
   };
+
+  const [loanHistory, setLoanHistory] = useState<any[]>([]);
+
+  const fetchLoanHistory = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('lendings')
+        .select(`
+          *,
+          profiles (name, username),
+          books (title)
+        `)
+        .order('creationDate', { ascending: false });
+      
+      if (error) throw error;
+      setLoanHistory(data || []);
+    } catch (err) {
+      console.error('Error fetching loan history:', err);
+    }
+  };
+
+  React.useEffect(() => {
+    if (activeTab === 'overview' && user.role === UserRole.LIBRARIAN) {
+      fetchLoanHistory();
+    }
+  }, [activeTab, user.role]);
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -169,22 +198,132 @@ const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {activeTab === 'overview' && (
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
-          <div className="card">
-            <h4>Total Catalog</h4>
-            <p style={{ fontSize: '2rem', fontWeight: 700 }}>{books.length}</p>
+        <div className="grid" style={{ gap: '2rem' }}>
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
+            <div className="card">
+              <h4>Total Catalog</h4>
+              <p style={{ fontSize: '2rem', fontWeight: 700 }}>{books.length}</p>
+            </div>
+            <div className="card">
+              <h4>Books Loaned</h4>
+              <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent)' }}>
+                {books.filter(b => b.status === BookStatus.LOANED).length}
+              </p>
+            </div>
+            <div className="card">
+              <h4>Reserved</h4>
+              <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent-light)' }}>
+                {books.filter(b => b.status === BookStatus.RESERVED).length}
+              </p>
+            </div>
           </div>
-          <div className="card">
-            <h4>Books Loaned</h4>
-            <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent)' }}>
-              {books.filter(b => b.status === BookStatus.LOANED).length}
-            </p>
-          </div>
-          <div className="card">
-            <h4>Reserved</h4>
-            <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent-light)' }}>
-              {books.filter(b => b.status === BookStatus.RESERVED).length}
-            </p>
+
+          <div className="card" style={{ padding: '1.5rem' }}>
+            <div className="flex" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0 }}>Loan Management</h3>
+              <div className="flex" style={{ gap: '0.5rem', backgroundColor: '#f1f5f9', padding: '0.3rem', borderRadius: '8px' }}>
+                <button 
+                  className={`btn ${loanTab === 'active' ? 'btn-primary' : ''}`} 
+                  style={{ padding: '6px 12px', fontSize: '0.8rem', backgroundColor: loanTab === 'active' ? '' : 'transparent', color: loanTab === 'active' ? '' : '#64748b', boxShadow: loanTab === 'active' ? '' : 'none' }}
+                  onClick={() => setLoanTab('active')}
+                >
+                  Active Loans
+                </button>
+                <button 
+                  className={`btn ${loanTab === 'backlog' ? 'btn-primary' : ''}`} 
+                  style={{ padding: '6px 12px', fontSize: '0.8rem', backgroundColor: loanTab === 'backlog' ? '' : 'transparent', color: loanTab === 'backlog' ? '' : '#64748b', boxShadow: loanTab === 'backlog' ? '' : 'none' }}
+                  onClick={() => setLoanTab('backlog')}
+                >
+                  History Backlog
+                </button>
+              </div>
+            </div>
+
+            {loanTab === 'active' ? (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #f1f5f9', textAlign: 'left' }}>
+                      <th style={{ padding: '12px' }}>Borrower</th>
+                      <th style={{ padding: '12px' }}>Book</th>
+                      <th style={{ padding: '12px' }}>Due Date</th>
+                      <th style={{ padding: '12px' }}>Status</th>
+                      <th style={{ padding: '12px', textAlign: 'center' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loanHistory.filter(l => !l.returnDate).length > 0 ? (
+                      loanHistory.filter(l => !l.returnDate).map(loan => {
+                        const isOverdue = new Date() > new Date(loan.dueDate);
+                        return (
+                          <tr key={loan.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '12px' }}>
+                              <div style={{ fontWeight: 600 }}>{loan.profiles?.name || 'Unknown'}</div>
+                              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>@{loan.profiles?.username}</div>
+                            </td>
+                            <td style={{ padding: '12px' }}>{loan.books?.title}</td>
+                            <td style={{ padding: '12px' }}>{new Date(loan.dueDate).toLocaleDateString()}</td>
+                            <td style={{ padding: '12px' }}>
+                              {isOverdue ? (
+                                <span className="badge" style={{ backgroundColor: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '4px', width: 'fit-content' }}>
+                                  <AlertTriangle size={12} /> Overdue
+                                </span>
+                              ) : (
+                                <span className="badge" style={{ backgroundColor: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', gap: '4px', width: 'fit-content' }}>
+                                  <Clock size={12} /> Due Soon
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ padding: '12px', textAlign: 'center' }}>
+                              <button 
+                                className="btn btn-primary" 
+                                style={{ padding: '6px 12px', fontSize: '0.75rem' }}
+                                onClick={() => onReturn(loan.bookItemBarcode)}
+                              >
+                                Record Return
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No active loans found.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #f1f5f9', textAlign: 'left' }}>
+                      <th style={{ padding: '12px' }}>Borrower</th>
+                      <th style={{ padding: '12px' }}>Book</th>
+                      <th style={{ padding: '12px' }}>Returned On</th>
+                      <th style={{ padding: '12px' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loanHistory.filter(l => l.returnDate).length > 0 ? (
+                      loanHistory.filter(l => l.returnDate).map(loan => (
+                        <tr key={loan.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '12px' }}>{loan.profiles?.name}</td>
+                          <td style={{ padding: '12px' }}>{loan.books?.title}</td>
+                          <td style={{ padding: '12px' }}>{new Date(loan.returnDate).toLocaleDateString()}</td>
+                          <td style={{ padding: '12px' }}>
+                            <span className="badge" style={{ backgroundColor: '#f1f5f9', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', width: 'fit-content' }}>
+                              <CheckCircle size={12} /> Returned
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No return records in backlog.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}

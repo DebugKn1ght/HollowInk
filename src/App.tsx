@@ -648,6 +648,9 @@ function AppContent() {
     setBooks(newBooks);
     localStorage.setItem('hollowink_books', JSON.stringify(newBooks));
     
+    // We don't need manual reload here as state is already updated
+    // and Supabase is updated in the try block
+    
     try {
       await supabase.from('books').update({ status: BookStatus.AVAILABLE, borrowedBy: null, dueDate: null, borrowed: null }).eq('barcode', barcode);
     } catch (err) { console.error(err); }
