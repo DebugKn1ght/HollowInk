@@ -476,11 +476,12 @@ function AppContent() {
     setLoginError(null);
     console.log('Attempting signup for:', user.username, user);
     try {
+      // Reverting to the safe ternary logic: use Vercel URL for emails even when testing on localhost
       const baseUrl = window.location.origin.includes('localhost') 
         ? 'https://hollow-ink-94sx.vercel.app' 
         : window.location.origin;
 
-      console.log('Using redirect URL:', `${baseUrl}/login`);
+      console.log('Using redirect URL for email:', `${baseUrl}/login`);
 
       // 1. Sign up with Supabase Auth (handles email verification)
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -502,7 +503,11 @@ function AppContent() {
 
       if (authError) {
         console.error('Supabase Auth signup error:', authError);
-        showToast(`Failed to create account: ${authError.message}`, 'error');
+        let errorMsg = authError.message;
+        if (errorMsg.includes('Error sending confirmation email')) {
+          errorMsg = 'SMTP Error: Ensure your "Sender Email" in Supabase is set to "onboarding@resend.dev" if you do not own a custom domain.';
+        }
+        showToast(`Failed to create account: ${errorMsg}`, 'error');
         return false;
       }
 
@@ -564,7 +569,6 @@ function AppContent() {
   const handleForgotPassword = async (email: string): Promise<boolean> => {
     console.log('Requesting password reset for:', email);
     try {
-      // Use the current origin, but ensure it's not localhost if we're on production
       const baseUrl = window.location.origin.includes('localhost') 
         ? 'https://hollow-ink-94sx.vercel.app' 
         : window.location.origin;
